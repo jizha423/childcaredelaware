@@ -30,7 +30,6 @@ schools <- read_csv("data/School_Directory.csv")
 
 ## Plots
 * no of childCare centers per county
-* no of childCare centers per county and area
 
 ```{r}
 
