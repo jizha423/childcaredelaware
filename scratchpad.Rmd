@@ -1,0 +1,83 @@
+---
+title: "Child Care Analysis"
+output: html_notebook
+---
+
+```{r}
+
+install.packages("fuzzyjoin")
+
+library(tidyverse)
+library(profilr)
+library(magrittr)
+library(fuzzyjoin)
+
+childCare <- read_csv("data/Licensed_Child_Care_Providers_and_Facilities.csv")
+schools <- read_csv("data/School_Directory.csv")
+
+#profiledChildCare <- profile(childCare) %>% select(.column_name,.count_elements,.count_uniques,.count_NAs,.percent_NAs,.top_5_values,.bottom_5_values)
+#profiledSchool <- profile(schools) %>% select(.column_name,.count_elements,.count_uniques,.count_NAs,.percent_NAs,.top_5_values,.bottom_5_values)
+
+View(profiledChildCare)
+View(childCare)
+View(schools)
+
+View(unique( childCare$`Government Programs`))
+
+#how much hours of salary needed to pay daycare
+#are they flexible?
+
+#no of childCare centers per county
+#no of childCare centers per county and area
+#
+
+# How many schools provide it?
+childCare %>% group_by(Name) %>% summarise(n = n())
+
+filtSchool <- schools %>% filter( SchoolName == "W. B. Simpson Elementary School" & SchoolYear == "2016")
+
+filtChild <- childCare %>% filter(`License Number` == "744170")
+
+
+ggplot(childCare) +
+  geom_bar(aes(Name))
+
+```
+
+## Child care usually from
+# age six weeks to age thirteen.
+# cost of childcare? Can people move to a different childcare which cost less
+
+```{r}
+View(schools)
+View(childCare)
+tst <- data.frame(SchoolName = c("W. B. SIMPSON ELEMENTARY SCHOOL"))
+
+profile(schools)
+
+schools2012 <- schools %>% filter(SchoolYear == "2016")
+
+tst$SchoolName <- as.character(tst$SchoolName)
+
+childCare %>% filter(`License Number` == 744170) %>% select(Name) %>% regex_inner_join(tst,by=c(Name = "SchoolName"))
+
+
+
+childCare %>% select(Name) %>%  regex_inner_join(filt,by=c(Name = "UpperSchoolName")) %>% select(Name,UpperSchoolName)
+
+```
+
+## Add a year to the input dataset
+
+```{r}
+
+childCare %<>% mutate(As_of_Year = "2016", ProbablySchool = grepl("@",Name) | grepl(" AT ",Name)) %>% select(Name,ProbablySchool,everything())
+
+schools2012 <- schools %>% filter(SchoolYear == "2016") %>% mutate(UpperSchoolName = toupper(SchoolName))
+
+schoolLookup <- childCare %>% select(Name) %>%  regex_inner_join(schools2012,by=c(Name = "UpperSchoolName")) %>% select(Name,UpperSchoolName)  %>% rename(childCareName = Name, SchoolName = UpperSchoolName)
+#%>% rename(`School Name from Childcare Dataset` = Name, `School Name From District schools dataset` = UpperSchoolName)
+
+childCare %>% left_join(schoolLookup,by = c("Name" = "childCareName")) %>% select(Name,ProbablySchool,SchoolName) %>% filter(ProbablySchool == TRUE)
+write_csv(childCare,"data/ChildcareAndSchools.csv")
+```
