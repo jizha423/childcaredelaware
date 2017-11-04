@@ -18,5 +18,8 @@ Perform exploratory data analysis to extract valuable insights from the data. Es
 
 ## Plots
 Plot the below dimensions to visualize the data
-* no of childCare centers per county
+* Ratio of childcare centers to population per county
+
+![Image: Ratio of childcare centers to population per county]("images/CountyPopulationVsChildcareCenters.png")
+
 

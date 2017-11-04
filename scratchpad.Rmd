@@ -52,3 +52,26 @@ childCare %>% left_join(schoolLookup,by = c("Name" = "childCareName")) %>% selec
 #write the new dataset to data folder for analysis
 write_csv(childCare,"data/ChildcareAndSchools.csv")
 ```
+
+```{r}
+# No of childcare facilities per county
+ggplot(childCare, aes(County)) +
+  geom_bar()
+
+#county population size to no of childcare centers
+# create a county dataset with population size
+countyPopulation <- data.frame (County = c("Kent","New Castle","Sussex"), Population=c(162310,556987,197145)) %>% mutate(County = as.character(County))
+
+# aggregate childcare per county
+childcarePerCount <- childCare %>% group_by(County) %>% summarize(NoOfChildCareCenters=n())
+
+#get ratio of childcare to population
+PopulationChildcare <- inner_join(countyPopulation,childcarePerCount, by= c("County"="County")) %>% mutate(popToChildcareRatio = NoOfChildCareCenters/Population*100)
+
+#plot county to ratio
+image <- ggplot(PopulationChildcare, aes(County,popToChildcareRatio)) +
+  geom_bar(stat="identity") + 
+  labs(x = "Counties in Delaware", y="County Population to Childcare Ratio") +
+  theme(text = element_text(size=5) )
+ggsave(file="images/CountyPopulationVsChildcareCenters.png", plot=image,width=4,height=2)
+```
