@@ -15,69 +15,41 @@ library(fuzzyjoin)
 childCare <- read_csv("data/Licensed_Child_Care_Providers_and_Facilities.csv")
 schools <- read_csv("data/School_Directory.csv")
 
+#profiling the data to see interesting patterns
 #profiledChildCare <- profile(childCare) %>% select(.column_name,.count_elements,.count_uniques,.count_NAs,.percent_NAs,.top_5_values,.bottom_5_values)
 #profiledSchool <- profile(schools) %>% select(.column_name,.count_elements,.count_uniques,.count_NAs,.percent_NAs,.top_5_values,.bottom_5_values)
-
-View(profiledChildCare)
-View(childCare)
-View(schools)
-
-View(unique( childCare$`Government Programs`))
-
-#how much hours of salary needed to pay daycare
-#are they flexible?
-
-#no of childCare centers per county
-#no of childCare centers per county and area
-#
-
-# How many schools provide it?
-childCare %>% group_by(Name) %>% summarise(n = n())
-
-filtSchool <- schools %>% filter( SchoolName == "W. B. Simpson Elementary School" & SchoolYear == "2016")
-
-filtChild <- childCare %>% filter(`License Number` == "744170")
-
-
-ggplot(childCare) +
-  geom_bar(aes(Name))
-
 ```
+## Findings from wikipedia
+* Child care usually from age six weeks to age thirteen.
 
-## Child care usually from
-# age six weeks to age thirteen.
-# cost of childcare? Can people move to a different childcare which cost less
+## Some interesting questions that might be answerable
+* how much hours of salary needed to pay daycare
+* are the centers flexible?
+* cost of childcare? Can people move to a different childcare which cost less
+* How many schools provide childcare - why and why not?
+
+## Plots
+* no of childCare centers per county
+* no of childCare centers per county and area
 
 ```{r}
-View(schools)
-View(childCare)
-tst <- data.frame(SchoolName = c("W. B. SIMPSON ELEMENTARY SCHOOL"))
 
-profile(schools)
+#Since the school dataset spans over multiple year. Choose only one year, in this case recent one
+schools2016 <- schools %>% filter(SchoolYear == "2016") %>% mutate(UpperSchoolName = toupper(SchoolName))
 
-schools2012 <- schools %>% filter(SchoolYear == "2016")
 
+#Factors are not joinable in dplyr. Convert them to character vector
 tst$SchoolName <- as.character(tst$SchoolName)
 
-childCare %>% filter(`License Number` == 744170) %>% select(Name) %>% regex_inner_join(tst,by=c(Name = "SchoolName"))
-
-
-
-childCare %>% select(Name) %>%  regex_inner_join(filt,by=c(Name = "UpperSchoolName")) %>% select(Name,UpperSchoolName)
-
-```
-
-## Add a year to the input dataset
-
-```{r}
-
+# Add a control column to the dataset. Once we make a join, the success of the join can be verified by comparing this column. A true in this column should have a school value most of the time
 childCare %<>% mutate(As_of_Year = "2016", ProbablySchool = grepl("@",Name) | grepl(" AT ",Name)) %>% select(Name,ProbablySchool,everything())
 
-schools2012 <- schools %>% filter(SchoolYear == "2016") %>% mutate(UpperSchoolName = toupper(SchoolName))
+# Create a lookup dataset with possible Chilcare Name and school name association
+schoolLookup <- childCare %>% select(Name) %>%  regex_inner_join(schools2016,by=c(Name = "UpperSchoolName")) %>% select(Name,UpperSchoolName)  %>% rename(childCareName = Name, SchoolName = UpperSchoolName)
 
-schoolLookup <- childCare %>% select(Name) %>%  regex_inner_join(schools2012,by=c(Name = "UpperSchoolName")) %>% select(Name,UpperSchoolName)  %>% rename(childCareName = Name, SchoolName = UpperSchoolName)
-#%>% rename(`School Name from Childcare Dataset` = Name, `School Name From District schools dataset` = UpperSchoolName)
-
+#left join the school dataset with the lookup
 childCare %>% left_join(schoolLookup,by = c("Name" = "childCareName")) %>% select(Name,ProbablySchool,SchoolName) %>% filter(ProbablySchool == TRUE)
+
+#write the new dataset to data folder for analysis
 write_csv(childCare,"data/ChildcareAndSchools.csv")
 ```
